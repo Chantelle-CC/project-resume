@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, KeyRound, Loader2, Sparkles, AlertCircle } from "lucide-react"
+import { ChevronDown, Loader2, ArrowRight, AlertCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -69,32 +69,25 @@ export function OptimizerForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
+    <div className="space-y-10">
       {/* API config */}
-      <div className="border-b border-border">
+      <section>
         <button
           type="button"
           onClick={() => setShowConfig((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
+          className="flex w-full items-center justify-between gap-3 border-b border-border pb-3 text-left"
         >
           <span className="flex items-center gap-2.5 text-sm font-medium">
-            <KeyRound className="h-4 w-4 text-primary" />
             模型接入配置
-            {config.apiKey ? (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-normal text-accent-foreground">
-                已配置
-              </span>
-            ) : (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                待填写
-              </span>
-            )}
+            <span className="text-xs font-normal text-muted-foreground">
+              {config.apiKey ? "已配置" : "待填写"}
+            </span>
           </span>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", showConfig && "rotate-180")} />
         </button>
 
         {showConfig && (
-          <div className="grid gap-4 px-6 pb-6 md:grid-cols-2">
+          <div className="grid gap-4 pt-5 md:grid-cols-2">
             <div className="md:col-span-2">
               <Label htmlFor="apiKey">API Key</Label>
               <Input
@@ -131,10 +124,10 @@ export function OptimizerForm() {
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Inputs */}
-      <div className="grid gap-6 p-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col">
           <div className="mb-1.5 flex items-center justify-between">
             <Label htmlFor="jd">岗位招聘 JD</Label>
@@ -161,11 +154,18 @@ export function OptimizerForm() {
             className="min-h-64 resize-none leading-relaxed"
           />
         </div>
-      </div>
+      </section>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Footer actions */}
-      <div className="flex flex-col gap-4 border-t border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+      <section className="flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">输出语言</span>
           <div className="flex rounded-lg border border-border p-0.5">
             {(["zh", "en"] as Lang[]).map((l) => (
@@ -175,7 +175,7 @@ export function OptimizerForm() {
                 onClick={() => setLang(l)}
                 className={cn(
                   "rounded-md px-3 py-1 text-sm transition-colors",
-                  lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  lang === l ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {l === "zh" ? "中文" : "English"}
@@ -184,7 +184,7 @@ export function OptimizerForm() {
           </div>
         </div>
 
-        <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2">
+        <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2 rounded-full">
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -192,19 +192,12 @@ export function OptimizerForm() {
             </>
           ) : (
             <>
-              <Sparkles className="h-4 w-4" />
               生成优化简历
+              <ArrowRight className="h-4 w-4" />
             </>
           )}
         </Button>
-      </div>
-
-      {error && (
-        <div className="mx-6 mb-6 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      </section>
     </div>
   )
 }

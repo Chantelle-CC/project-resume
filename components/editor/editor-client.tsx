@@ -13,10 +13,10 @@ import { ResumePreview } from "./resume-preview"
 import { EditorPanel } from "./editor-panel"
 
 const ACCENTS = [
-  { name: "深蓝", value: "#2f4f8f" },
-  { name: "墨黑", value: "#1f2430" },
-  { name: "青绿", value: "#0f766e" },
-  { name: "酒红", value: "#9f1239" },
+  { name: "墨黑", value: "#18181b" },
+  { name: "石灰", value: "#52525b" },
+  { name: "深蓝", value: "#1e3a5f" },
+  { name: "棕褐", value: "#5c4a3a" },
 ]
 
 export function EditorClient() {
@@ -78,11 +78,11 @@ export function EditorClient() {
         <FileText className="h-10 w-10 text-muted-foreground" />
         <div>
           <h1 className="text-lg font-semibold">还没有优化结果</h1>
-          <p className="mt-1 text-sm text-muted-foreground">请先在首页输入 JD 与简历生成优化内容。</p>
+          <p className="mt-1 text-sm text-muted-foreground">请先输入 JD 与简历生成优化内容。</p>
         </div>
-        <Button onClick={() => router.push("/")} className="gap-2">
+        <Button onClick={() => router.push("/start")} className="gap-2 rounded-full">
           <ArrowLeft className="h-4 w-4" />
-          返回首页
+          去输入
         </Button>
       </div>
     )
@@ -93,15 +93,12 @@ export function EditorClient() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-5 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/start" className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             返回
           </Link>
           <span className="h-4 w-px bg-border" />
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <FileText className="h-4 w-4 text-primary" />
-            简历编辑器
-          </span>
+          <span className="text-sm font-semibold tracking-tight">简历编辑器</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden items-center gap-1.5 sm:flex">
@@ -111,14 +108,14 @@ export function EditorClient() {
                 title={a.name}
                 onClick={() => setAccent(a.value)}
                 className={cn(
-                  "h-6 w-6 rounded-full border-2 transition-transform hover:scale-110",
-                  accent === a.value ? "border-foreground" : "border-transparent",
+                  "h-6 w-6 rounded-full border transition-transform hover:scale-110",
+                  accent === a.value ? "border-foreground ring-2 ring-foreground/20" : "border-border",
                 )}
                 style={{ backgroundColor: a.value }}
               />
             ))}
           </div>
-          <Button onClick={handleExport} disabled={exporting} className="gap-2">
+          <Button onClick={handleExport} disabled={exporting} className="gap-2 rounded-full">
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             导出 PDF
           </Button>
