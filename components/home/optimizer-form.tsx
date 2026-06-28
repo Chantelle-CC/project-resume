@@ -123,40 +123,18 @@ export function OptimizerForm() {
           </div>
 
           <p className="mt-4 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-            Key 仅保存在你的浏览器本地，直接从前端调用模型接口，不会上传到服务器。
+            Key 仅保存在你的本地，不会上传到服务器。
           </p>
-
-          <div className="mt-5 border-t border-border pt-5">
-            <span className="text-sm font-medium">输出语言</span>
-            <div className="mt-2.5 flex rounded-lg border border-border p-0.5">
-              {(["zh", "en"] as Lang[]).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLang(l)}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors",
-                    lang === l ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {l === "zh" ? "中文" : "English"}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </aside>
 
       {/* Right: main inputs */}
       <div className="space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <Label htmlFor="jd" className="flex items-center gap-2 text-sm font-medium">
-              <Briefcase className="h-4 w-4" />
-              岗位招聘 JD
-            </Label>
-            <span className="text-xs text-muted-foreground">{jd.length} 字</span>
-          </div>
+          <Label htmlFor="jd" className="mb-3 flex items-center gap-2 text-sm font-medium">
+            <Briefcase className="h-4 w-4" />
+            岗位招聘 JD
+          </Label>
           <Textarea
             id="jd"
             value={jd}
@@ -167,13 +145,10 @@ export function OptimizerForm() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <Label htmlFor="resume" className="flex items-center gap-2 text-sm font-medium">
-              <FileText className="h-4 w-4" />
-              个人简历
-            </Label>
-            <span className="text-xs text-muted-foreground">{resume.length} 字</span>
-          </div>
+          <Label htmlFor="resume" className="mb-3 flex items-center gap-2 text-sm font-medium">
+            <FileText className="h-4 w-4" />
+            个人简历
+          </Label>
           <Textarea
             id="resume"
             value={resume}
@@ -191,7 +166,7 @@ export function OptimizerForm() {
         )}
 
         <div className="flex items-center justify-end">
-          <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2 rounded-full">
+          <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2 rounded-full pr-2.5">
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />

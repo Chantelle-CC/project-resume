@@ -12,9 +12,6 @@ export default function StartPage() {
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight md:text-4xl">
             输入岗位描述与简历
           </h1>
-          <p className="mt-3 max-w-xl text-pretty leading-relaxed text-muted-foreground">
-            填写你的模型 API、目标岗位 JD 与现有简历，几秒后生成优化结果并进入编辑器。
-          </p>
         </section>
 
         <OptimizerForm />
