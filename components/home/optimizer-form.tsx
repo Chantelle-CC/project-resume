@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, Loader2, ArrowRight, AlertCircle } from "lucide-react"
+import { Loader2, ArrowRight, AlertCircle, KeyRound, FileText, Briefcase, CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,7 +22,6 @@ export function OptimizerForm() {
     baseUrl: DEFAULT_BASE_URL,
     model: DEFAULT_MODEL,
   })
-  const [showConfig, setShowConfig] = useState(true)
   const [jd, setJd] = useState("")
   const [resume, setResume] = useState("")
   const [lang, setLang] = useState<Lang>("zh")
@@ -35,7 +34,6 @@ export function OptimizerForm() {
       try {
         const saved = JSON.parse(raw) as AIConfig
         setConfig((c) => ({ ...c, ...saved }))
-        if (saved.apiKey) setShowConfig(false)
       } catch {}
     }
   }, [])
@@ -50,7 +48,6 @@ export function OptimizerForm() {
     setError(null)
     if (!config.apiKey.trim()) {
       setError("请先填写 API Key。")
-      setShowConfig(true)
       return
     }
     if (!jd.trim() || !resume.trim()) {
@@ -68,27 +65,31 @@ export function OptimizerForm() {
     }
   }
 
-  return (
-    <div className="space-y-10">
-      {/* API config */}
-      <section>
-        <button
-          type="button"
-          onClick={() => setShowConfig((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 border-b border-border pb-3 text-left"
-        >
-          <span className="flex items-center gap-2.5 text-sm font-medium">
-            模型接入配置
-            <span className="text-xs font-normal text-muted-foreground">
-              {config.apiKey ? "已配置" : "待填写"}
-            </span>
-          </span>
-          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", showConfig && "rotate-180")} />
-        </button>
+  const configured = Boolean(config.apiKey)
 
-        {showConfig && (
-          <div className="grid gap-4 pt-5 md:grid-cols-2">
-            <div className="md:col-span-2">
+  return (
+    <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
+      {/* Left: settings sidebar */}
+      <aside className="lg:sticky lg:top-24 lg:self-start">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <KeyRound className="h-4 w-4" />
+              模型接入配置
+            </span>
+            <span
+              className={cn(
+                "flex items-center gap-1 text-xs",
+                configured ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {configured && <CheckCircle2 className="h-3.5 w-3.5" />}
+              {configured ? "已配置" : "待填写"}
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            <div>
               <Label htmlFor="apiKey">API Key</Label>
               <Input
                 id="apiKey"
@@ -98,9 +99,6 @@ export function OptimizerForm() {
                 onChange={(e) => updateConfig({ apiKey: e.target.value })}
                 className="mt-1.5 font-mono"
               />
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Key 仅保存在你的浏览器本地，直接从前端调用模型接口，不会上传到服务器。
-              </p>
             </div>
             <div>
               <Label htmlFor="baseUrl">接口地址 Base URL</Label>
@@ -123,14 +121,40 @@ export function OptimizerForm() {
               />
             </div>
           </div>
-        )}
-      </section>
 
-      {/* Inputs */}
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col">
-          <div className="mb-1.5 flex items-center justify-between">
-            <Label htmlFor="jd">岗位招聘 JD</Label>
+          <p className="mt-4 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
+            Key 仅保存在你的浏览器本地，直接从前端调用模型接口，不会上传到服务器。
+          </p>
+
+          <div className="mt-5 border-t border-border pt-5">
+            <span className="text-sm font-medium">输出语言</span>
+            <div className="mt-2.5 flex rounded-lg border border-border p-0.5">
+              {(["zh", "en"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors",
+                    lang === l ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {l === "zh" ? "中文" : "English"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Right: main inputs */}
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <Label htmlFor="jd" className="flex items-center gap-2 text-sm font-medium">
+              <Briefcase className="h-4 w-4" />
+              岗位招聘 JD
+            </Label>
             <span className="text-xs text-muted-foreground">{jd.length} 字</span>
           </div>
           <Textarea
@@ -138,12 +162,16 @@ export function OptimizerForm() {
             value={jd}
             onChange={(e) => setJd(e.target.value)}
             placeholder="粘贴目标岗位的招聘要求、职责描述、任职资格..."
-            className="min-h-64 resize-none leading-relaxed"
+            className="min-h-52 resize-none border-0 bg-transparent p-0 leading-relaxed shadow-none focus-visible:ring-0"
           />
         </div>
-        <div className="flex flex-col">
-          <div className="mb-1.5 flex items-center justify-between">
-            <Label htmlFor="resume">个人简历</Label>
+
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <Label htmlFor="resume" className="flex items-center gap-2 text-sm font-medium">
+              <FileText className="h-4 w-4" />
+              个人简历
+            </Label>
             <span className="text-xs text-muted-foreground">{resume.length} 字</span>
           </div>
           <Textarea
@@ -151,53 +179,33 @@ export function OptimizerForm() {
             value={resume}
             onChange={(e) => setResume(e.target.value)}
             placeholder="粘贴你的现有简历内容（纯文本即可，无需排版）..."
-            className="min-h-64 resize-none leading-relaxed"
+            className="min-h-52 resize-none border-0 bg-transparent p-0 leading-relaxed shadow-none focus-visible:ring-0"
           />
         </div>
-      </section>
 
-      {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Footer actions */}
-      <section className="flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">输出语言</span>
-          <div className="flex rounded-lg border border-border p-0.5">
-            {(["zh", "en"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={cn(
-                  "rounded-md px-3 py-1 text-sm transition-colors",
-                  lang === l ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {l === "zh" ? "中文" : "English"}
-              </button>
-            ))}
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
-        </div>
+        )}
 
-        <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2 rounded-full">
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              AI 优化中...
-            </>
-          ) : (
-            <>
-              生成优化简历
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </Button>
-      </section>
+        <div className="flex items-center justify-end">
+          <Button size="lg" onClick={handleSubmit} disabled={loading} className="gap-2 rounded-full">
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                AI 优化中...
+              </>
+            ) : (
+              <>
+                生成优化简历
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

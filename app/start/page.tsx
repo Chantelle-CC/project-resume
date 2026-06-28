@@ -6,7 +6,7 @@ export default function StartPage() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-6 pb-24">
+      <main className="mx-auto max-w-6xl px-6 pb-24">
         <section className="py-12 md:py-16">
           <p className="text-sm font-medium text-muted-foreground">第 1 步 / 共 2 步</p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight md:text-4xl">
