@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { optimizeResume, type AIConfig, DEFAULT_BASE_URL, DEFAULT_MODEL } from "@/lib/ai"
 import { saveResult, type Lang } from "@/lib/resume"
+import { parseFile } from "@/lib/parse-file-client"
 
 const CONFIG_KEY = "jobfit:config"
 
@@ -104,14 +105,8 @@ export function OptimizerForm() {
     setResumeFileName(file.name)
     setResumeParsing(true)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      const res = await fetch("/api/parse-file", { method: "POST", body: formData })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || "解析失败")
-      }
-      setResume(data.text)
+      const result = await parseFile(file)
+      setResume(result.text)
     } catch (e) {
       setError(e instanceof Error ? e.message : "文件解析失败，请重试。")
     } finally {
