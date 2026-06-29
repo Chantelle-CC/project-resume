@@ -1,12 +1,14 @@
 "use client"
 
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Camera, Upload } from "lucide-react"
+import { useRef, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 import type { ResumeData, ExperienceItem, ProjectItem, EducationItem } from "@/lib/resume"
 
 interface Props {
@@ -88,6 +90,10 @@ export function EditorPanel({ data, onChange }: Props) {
     <div className="space-y-7">
       {/* Basic info */}
       <Block title="基本信息">
+        <PhotoField
+          photo={data.photo}
+          onChange={(photo) => set("photo", photo)}
+        />
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="姓名" value={data.name} onChange={(v) => set("name", v)} />
           <Field label="求职意向 / 头衔" value={data.title} onChange={(v) => set("title", v)} />
@@ -202,6 +208,102 @@ export function EditorPanel({ data, onChange }: Props) {
           </div>
         ))}
       </Block>
+    </div>
+  )
+}
+
+// ---- Photo upload sub-component ----
+function PhotoField({ photo, onChange }: { photo: string; onChange: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
+
+  function cropToSquare(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        const size = Math.min(img.width, img.height)
+        const sx = (img.width - size) / 2
+        const sy = (img.height - size) / 2
+
+        const canvas = document.createElement("canvas")
+        canvas.width = 300
+        canvas.height = 300
+        const ctx = canvas.getContext("2d")!
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, 300, 300)
+        resolve(canvas.toDataURL("image/jpeg", 0.85))
+      }
+      img.onerror = () => reject(new Error("图片加载失败"))
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) return
+    if (file.size > 5 * 1024 * 1024) return
+    try {
+      const dataUrl = await cropToSquare(file)
+      onChange(dataUrl)
+    } catch {}
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(true)
+  }
+  function onDragLeave() {
+    setDragOver(false)
+  }
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const f = e.dataTransfer.files?.[0]
+    if (f) handleFile(f)
+  }
+
+  return (
+    <div
+      className={cn(
+        "relative mx-auto mb-4 flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors",
+        dragOver ? "border-primary bg-primary/5" : photo ? "border-transparent" : "border-muted-foreground/30 hover:border-muted-foreground",
+      )}
+      onClick={() => inputRef.current?.click()}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) handleFile(f)
+          e.target.value = ""
+        }}
+      />
+
+      {photo ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo} alt="照片" className="h-full w-full object-cover" />
+          <button
+            type="button"
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation()
+              onChange("")
+            }}
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+          <Camera className="h-6 w-6" />
+          <span className="text-[10px]">照片</span>
+        </div>
+      )}
     </div>
   )
 }

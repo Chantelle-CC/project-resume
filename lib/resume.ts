@@ -34,6 +34,7 @@ export interface ResumeData {
   email: string
   phone: string
   location: string
+  photo: string
   links: ResumeLink[]
   summary: string
   skills: string[]
@@ -44,11 +45,15 @@ export interface ResumeData {
 
 export interface OptimizeResult {
   resume: ResumeData
+  jd: string // Original JD text — used by matching engine
   matchScore: number
   matchedKeywords: string[]
   missingKeywords: string[]
   suggestions: string[]
 }
+
+// Re-export MatchResult from matching engine for UI components
+export type { MatchResult, DimensionBreakdown } from "./matching"
 
 export const emptyResume: ResumeData = {
   name: "",
@@ -56,6 +61,7 @@ export const emptyResume: ResumeData = {
   email: "",
   phone: "",
   location: "",
+  photo: "",
   links: [],
   summary: "",
   skills: [],

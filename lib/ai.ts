@@ -9,13 +9,6 @@ export interface AIConfig {
 export const DEFAULT_BASE_URL = "https://api.openai.com/v1"
 export const DEFAULT_MODEL = "gpt-4o-mini"
 
-interface OptimizeArgs {
-  config: AIConfig
-  jd: string
-  resume: string
-  lang: Lang
-}
-
 const RESUME_SHAPE = `{
   "resume": {
     "name": string,
@@ -36,7 +29,7 @@ const RESUME_SHAPE = `{
   "suggestions": string[]
 }`
 
-function buildPrompt(jd: string, resume: string, lang: Lang) {
+export function buildPrompt(jd: string, resume: string, lang: Lang) {
   const langLabel = lang === "zh" ? "Simplified Chinese" : "English"
   return `You are a senior technical recruiter and professional resume writer.
 Rewrite and optimize the candidate's resume so it best matches the target job description (JD).
@@ -61,7 +54,7 @@ ${jd}
 ${resume}`
 }
 
-function normalize(raw: any): OptimizeResult {
+export function normalize(raw: any): OptimizeResult {
   const r = raw?.resume ?? {}
   const resume: ResumeData = {
     name: r.name ?? "",
@@ -69,6 +62,7 @@ function normalize(raw: any): OptimizeResult {
     email: r.email ?? "",
     phone: r.phone ?? "",
     location: r.location ?? "",
+    photo: r.photo ?? "",
     links: Array.isArray(r.links) ? r.links : [],
     summary: r.summary ?? "",
     skills: Array.isArray(r.skills) ? r.skills : [],
@@ -108,7 +102,17 @@ function normalize(raw: any): OptimizeResult {
   }
 }
 
-export async function optimizeResume({ config, jd, resume, lang }: OptimizeArgs): Promise<OptimizeResult> {
+export async function optimizeResume({
+  config,
+  jd,
+  resume,
+  lang,
+}: {
+  config: AIConfig
+  jd: string
+  resume: string
+  lang: Lang
+}): Promise<OptimizeResult> {
   const baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "")
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",

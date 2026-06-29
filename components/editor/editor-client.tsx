@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Download, FileText, Loader2, Check, X, Lightbulb } from "lucide-react"
+import { ArrowLeft, Download, FileText, Loader2, Check, X, Lightbulb, AlertCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { loadResult, type OptimizeResult, type ResumeData } from "@/lib/resume"
+import { computeMatchScore, type MatchResult } from "@/lib/matching"
 import { ResumePreview } from "./resume-preview"
 import { EditorPanel } from "./editor-panel"
 
@@ -28,6 +29,7 @@ export function EditorClient() {
   const [accent, setAccent] = useState(ACCENTS[0].value)
   const [tab, setTab] = useState<"edit" | "insight">("edit")
   const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -41,26 +43,82 @@ export function EditorClient() {
     setReady(true)
   }, [])
 
-  async function handleExport() {
+  function handleExport() {
     if (!sheetRef.current || !data) return
+    setExportError(null)
     setExporting(true)
-    try {
-      const html2pdf = (await import("html2pdf.js")).default
-      await html2pdf()
-        .set({
-          margin: 0,
-          filename: `${data.name || "resume"}-简历.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"] },
-        } as any)
-        .from(sheetRef.current)
-        .save()
-    } catch (e) {
-      console.log("[v0] export error:", e)
-    } finally {
+
+    const sheet = sheetRef.current
+
+    // Clone the resume sheet and inject into a clean print window.
+    // This avoids ALL html2canvas oklch() issues — the browser renders natively.
+    const clone = sheet.cloneNode(true) as HTMLElement
+
+    // Collect all stylesheets from the current document
+    const styles = Array.from(document.styleSheets)
+      .map((ss) => {
+        try {
+          return Array.from(ss.cssRules)
+            .map((r) => (r as CSSRule).cssText)
+            .join("\n")
+        } catch {
+          return ""
+        }
+      })
+      .join("\n")
+
+    const printWin = window.open("", "_blank", "width=1024,height=768")
+    if (!printWin) {
+      setExportError("无法打开打印窗口，请检查浏览器弹窗拦截设置。")
       setExporting(false)
+      return
+    }
+
+    // Build complete HTML document
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${data.name || "简历"}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { background: white; display: flex; justify-content: center; }
+          /* Inject captured styles (scoped) */
+          ${styles}
+        </style>
+      </head>
+      <body>
+        ${clone.outerHTML}
+        <script>
+          // Adjust layout for print, then trigger
+          document.querySelector('.resume-sheet')?.classList.add('printing');
+          window.onload = () => {
+            // Small delay to let fonts/styles settle
+            setTimeout(() => window.print(), 300);
+          };
+        <\/script>
+      </body>
+      </html>
+    `)
+    printWin.document.close()
+
+    // Detect when print dialog closes
+    const checkClosed = setInterval(() => {
+      if (printWin.closed) {
+        clearInterval(checkClosed)
+        setExporting(false)
+      }
+    }, 500)
+
+    // Also listen for afterprint (works in some browsers even cross-window)
+    try {
+      printWin.addEventListener("afterprint", () => {
+        setExporting(false)
+        printWin?.close()
+      })
+    } catch {
+      // cross-origin may prevent listener attachment; interval fallback handles it
     }
   }
 
@@ -122,6 +180,14 @@ export function EditorClient() {
         </div>
       </header>
 
+      {exportError && (
+        <div className="mx-5 mt-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{exportError}</span>
+          <button className="ml-auto shrink-0 text-xs underline" onClick={() => setExportError(null)}>关闭</button>
+        </div>
+      )}
+
       <div className="mx-auto grid w-full max-w-[1500px] flex-1 grid-cols-1 lg:grid-cols-[440px_1fr]">
         {/* Left: editor + insights */}
         <aside className="border-b border-border lg:border-b-0 lg:border-r">
@@ -164,24 +230,107 @@ export function EditorClient() {
 }
 
 function MatchInsights({ result }: { result: OptimizeResult }) {
+  // Run the production matching engine client-side.
+  // Give priority to the algorithm score; fall back to AI score if no JD text.
+  const [match, setMatch] = useState<MatchResult | null>(null)
+
+  useEffect(() => {
+    if (result.jd) {
+      setMatch(computeMatchScore(result.jd, result.resume))
+    }
+  }, [result])
+
+  const score = match?.score ?? result.matchScore
+  const breakdown = match?.breakdown ?? []
+  const matchedKeywords = match?.matchedKeywords ?? result.matchedKeywords
+  const missingKeywords = match?.missingKeywords ?? result.missingKeywords
+  const suggestions =
+    match?.suggestions && match.suggestions.length > 0
+      ? match.suggestions
+      : result.suggestions
+
+  // Color gradient for dimension bars
+  function dimColor(s: number): string {
+    if (s >= 70) return "#16a34a" // green
+    if (s >= 40) return "#f59e0b" // amber
+    return "#ef4444" // red
+  }
+
   return (
     <div className="space-y-6">
+      {/* Overall score */}
       <div className="rounded-xl border border-border bg-card p-5 text-center">
-        <p className="text-sm text-muted-foreground">优化后岗位匹配度</p>
-        <p className="mt-1 text-4xl font-bold text-primary">{result.matchScore}%</p>
+        <p className="text-sm text-muted-foreground">
+          {match ? "算法匹配度（五维加权）" : "优化后岗位匹配度"}
+        </p>
+        <p className="mt-1 text-4xl font-bold text-primary">{score}%</p>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${result.matchScore}%` }} />
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-700"
+            style={{ width: `${score}%` }}
+          />
         </div>
+        {match && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            可复现 · 可解释 · 非 AI 主观打分
+          </p>
+        )}
       </div>
 
-      {result.matchedKeywords.length > 0 && (
+      {/* 5-dimension breakdown */}
+      {breakdown.length > 0 && (
+        <div>
+          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            评分明细
+          </h3>
+          <div className="space-y-3">
+            {breakdown.map((dim) => (
+              <div
+                key={dim.label}
+                className="rounded-lg border border-border bg-card p-3"
+              >
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-medium">{dim.label}</span>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: dimColor(dim.score) }}
+                    >
+                      {dim.score}%
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      ×{Math.round(dim.weight * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${dim.score}%`,
+                      backgroundColor: dimColor(dim.score),
+                    }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  {dim.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Matched keywords */}
+      {matchedKeywords.length > 0 && (
         <div>
           <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-            <Check className="h-4 w-4 text-primary" />
+            <Check className="h-4 w-4" style={{ color: "#16a34a" }} />
             已覆盖关键词
           </h3>
           <div className="flex flex-wrap gap-1.5">
-            {result.matchedKeywords.map((k) => (
+            {matchedKeywords.map((k) => (
               <Badge key={k} variant="secondary" className="font-normal">
                 {k}
               </Badge>
@@ -190,15 +339,20 @@ function MatchInsights({ result }: { result: OptimizeResult }) {
         </div>
       )}
 
-      {result.missingKeywords.length > 0 && (
+      {/* Missing keywords */}
+      {missingKeywords.length > 0 && (
         <div>
           <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
             <X className="h-4 w-4 text-destructive" />
             仍缺失关键词
           </h3>
           <div className="flex flex-wrap gap-1.5">
-            {result.missingKeywords.map((k) => (
-              <Badge key={k} variant="outline" className="border-destructive/30 font-normal text-destructive">
+            {missingKeywords.map((k) => (
+              <Badge
+                key={k}
+                variant="outline"
+                className="border-destructive/30 font-normal text-destructive"
+              >
                 {k}
               </Badge>
             ))}
@@ -206,15 +360,19 @@ function MatchInsights({ result }: { result: OptimizeResult }) {
         </div>
       )}
 
-      {result.suggestions.length > 0 && (
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
         <div>
           <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
             <Lightbulb className="h-4 w-4 text-primary" />
             优化建议
           </h3>
           <ul className="space-y-2">
-            {result.suggestions.map((s, i) => (
-              <li key={i} className="flex gap-2 rounded-lg border border-border bg-card p-3 text-sm leading-relaxed text-muted-foreground">
+            {suggestions.map((s, i) => (
+              <li
+                key={i}
+                className="flex gap-2 rounded-lg border border-border bg-card p-3 text-sm leading-relaxed text-muted-foreground"
+              >
                 <span className="font-medium text-primary">{i + 1}.</span>
                 <span>{s}</span>
               </li>
